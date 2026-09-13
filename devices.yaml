@@ -1,0 +1,111 @@
+monitor_namespace: basic-bgp-lab
+
+devices:
+  - hostname: r1
+    ip: 172.20.20.5
+    type: router
+    container: clab-bgp-lab-r1
+
+    bgp_neighbors:
+      - neighbor_ip: 10.0.12.2
+        remote_as: 65002
+
+  - hostname: r2
+    ip: 172.20.20.4
+    type: router
+    container: clab-bgp-lab-r2
+
+    bgp_neighbors:
+      - neighbor_ip: 10.0.12.1
+        remote_as: 65001
+
+bgp_routers:
+  - hostname: r1
+    container: clab-bgp-lab-r1
+    neighbors:
+      - neighbor_ip: 10.0.12.2
+        expected_remote_as: 65002
+
+  - hostname: r2
+    container: clab-bgp-lab-r2
+    neighbors:
+      - neighbor_ip: 10.0.12.1
+        expected_remote_as: 65001
+
+critical_routes:
+  - hostname: r1
+    container: clab-bgp-lab-r1
+    prefix: 10.20.1.0/24
+    expected_protocol: bgp
+    expected_next_hop: 10.0.12.2
+
+  - hostname: r2
+    container: clab-bgp-lab-r2
+    prefix: 10.10.1.0/24
+    expected_protocol: bgp
+    expected_next_hop: 10.0.12.1
+
+interfaces:
+  - hostname: r1
+    container: clab-bgp-lab-r1
+    interface: eth2
+
+  - hostname: r2
+    container: clab-bgp-lab-r2
+    interface: eth1
+
+dependencies:
+  - name: r1-r2-transit-link
+
+    root_cause:
+      type: interface
+      hostname: r1
+      interface: eth2
+
+    affected_bgp:
+      - hostname: r1
+        neighbor_ip: 10.0.12.2
+
+      - hostname: r2
+        neighbor_ip: 10.0.12.1
+
+    affected_routes:
+      - hostname: r1
+        prefix: 10.20.1.0/24
+
+      - hostname: r2
+        prefix: 10.10.1.0/24
+
+# devices that I don't own but want to monitor:
+#   - hostname: localhost
+#     ip: 127.0.0.1
+#     type: host
+#     services:
+#       - name: demo-http
+#         port: 8000
+#         check: http
+#         path: /health
+
+#   - hostname: cloudflare
+#     ip: 1.1.1.1
+#     type: external
+#     services:
+#       - name: cloudflare-https
+#         port: 443
+#         check: tcp
+
+#   - hostname: google-dns
+#     ip: 8.8.8.8
+#     type: external
+#     services:
+#       - name: dns
+#         port: 443
+#         check: tcp
+
+#   - hostname: test-server
+#     ip: 192.0.2.1
+#     type: server
+#     services:
+#       - name: https
+#         port: 443
+#         check: tcp

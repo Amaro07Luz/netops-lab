@@ -1,0 +1,1954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>NetOps Lab Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family:
+                Inter,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            background: #0b1020;
+            color: #e8edf7;
+        }
+
+        .container {
+            width: min(1500px, 94%);
+            margin: 0 auto;
+            padding: 30px 0 60px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #9ba9c3;
+            margin-top: 7px;
+        }
+
+        .connection-area {
+            text-align: right;
+            color: #9ba9c3;
+            font-size: 0.9rem;
+        }
+
+        .live-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #30d158;
+            margin-right: 6px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(190px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #141b2d;
+            border: 1px solid #26314c;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card-title {
+            color: #9ba9c3;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .card-detail {
+            margin-top: 7px;
+            color: #9ba9c3;
+            font-size: 0.85rem;
+        }
+
+        .topology-container {
+            padding: 20px;
+        }
+
+        .topology-state {
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #9ba9c3;
+        }
+
+        #topology-svg {
+            width: 100%;
+            height: auto;
+            min-height: 330px;
+        }
+
+        .topology-link {
+            stroke-width: 7;
+            stroke-linecap: round;
+            transition:
+                stroke 0.4s ease,
+                opacity 0.4s ease,
+                stroke-width 0.4s ease;
+        }
+
+        .link-edge {
+            stroke: #58657f;
+        }
+
+        .link-primary {
+            stroke: #30d158;
+            stroke-width: 9;
+        }
+
+        .link-standby {
+            stroke: #58657f;
+            stroke-width: 5;
+            opacity: 0.6;
+        }
+
+        .link-failover {
+            stroke: #ff9f0a;
+            stroke-width: 9;
+            opacity: 1;
+        }
+
+        .link-down {
+            stroke: #ff453a;
+            stroke-width: 7;
+            stroke-dasharray: 14 10;
+            opacity: 1;
+        }
+
+        .topology-router {
+            stroke-width: 3;
+            transition:
+                fill 0.4s ease,
+                stroke 0.4s ease;
+        }
+
+        .topology-host {
+            fill: #202a41;
+            stroke: #58657f;
+            stroke-width: 2;
+        }
+
+        .node-up {
+            fill: #142b20;
+            stroke: #30d158;
+        }
+
+        .node-degraded {
+            fill: #332614;
+            stroke: #ff9f0a;
+        }
+
+        .node-down {
+            fill: #351919;
+            stroke: #ff453a;
+        }
+
+        .node-title {
+            fill: #e8edf7;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .node-subtitle {
+            fill: #9ba9c3;
+            font-size: 13px;
+        }
+
+        .link-label {
+            fill: #9ba9c3;
+            font-size: 13px;
+            text-anchor: middle;
+        }
+
+        .topology-legend {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            flex-wrap: wrap;
+            color: #9ba9c3;
+            font-size: 0.8rem;
+        }
+
+        .topology-legend > div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-line {
+            display: inline-block;
+            width: 28px;
+            height: 4px;
+            border-radius: 999px;
+        }
+
+        .legend-primary {
+            background: #30d158;
+        }
+
+        .legend-backup {
+            background: #ff9f0a;
+        }
+
+        .legend-failed {
+            background: #ff453a;
+        }
+
+        section {
+            background: #141b2d;
+            border: 1px solid #26314c;
+            border-radius: 12px;
+            margin-bottom: 22px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 17px 20px;
+            border-bottom: 1px solid #26314c;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.05rem;
+        }
+
+        .section-description {
+            color: #9ba9c3;
+            font-size: 0.8rem;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 850px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 13px 16px;
+            border-bottom: 1px solid #202a41;
+            font-size: 0.9rem;
+        }
+
+        th {
+            color: #9ba9c3;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #182138;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 9px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .status-up,
+        .status-established,
+        .status-resolved {
+            background: rgba(48, 209, 88, 0.14);
+            color: #5ee27f;
+        }
+
+        .status-down,
+        .status-active,
+        .status-idle,
+        .status-open {
+            background: rgba(255, 69, 58, 0.14);
+            color: #ff6961;
+        }
+
+        .status-degraded {
+            background: rgba(255, 159, 10, 0.16);
+            color: #ffb340;
+        }
+
+        .status-unknown {
+            background: rgba(174, 174, 178, 0.16);
+            color: #c7c7cc;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            padding: 20px;
+        }
+
+        .metric {
+            background: #0f1628;
+            border-radius: 9px;
+            padding: 15px;
+        }
+
+        .metric-name {
+            color: #9ba9c3;
+            font-size: 0.8rem;
+            margin-bottom: 7px;
+        }
+
+        .metric-value {
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+
+        .empty {
+            padding: 25px;
+            color: #9ba9c3;
+            text-align: center;
+        }
+
+        .error-box {
+            display: none;
+            background: rgba(255, 69, 58, 0.13);
+            color: #ff7b72;
+            border: 1px solid rgba(255, 69, 58, 0.3);
+            border-radius: 9px;
+            padding: 13px;
+            margin-bottom: 20px;
+        }
+
+        footer {
+            color: #71809d;
+            text-align: center;
+            font-size: 0.8rem;
+            margin-top: 28px;
+        }
+
+        @media (max-width: 700px) {
+            header {
+                flex-direction: column;
+            }
+
+            .connection-area {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+        <div>
+            <h1>NetOps Lab</h1>
+
+            <div class="subtitle">
+                Network Monitoring & Automation Platform
+            </div>
+        </div>
+
+        <div class="connection-area">
+            <div>
+                <span class="live-dot"></span>
+                Live monitoring
+            </div>
+
+            <div id="last-updated">
+                Waiting for data...
+            </div>
+        </div>
+    </header>
+
+    <div
+        id="error-box"
+        class="error-box"
+    ></div>
+
+
+    <!-- ========================================== -->
+    <!-- SUMMARY CARDS                              -->
+    <!-- ========================================== -->
+
+    <div class="cards">
+
+        <div class="card">
+            <div class="card-title">
+                Interfaces
+            </div>
+
+            <div
+                id="interfaces-value"
+                class="card-value"
+            >
+                --
+            </div>
+
+            <div
+                id="interfaces-detail"
+                class="card-detail"
+            >
+                Loading...
+            </div>
+        </div>
+
+
+        <div class="card">
+            <div class="card-title">
+                BGP Neighbors
+            </div>
+
+            <div
+                id="bgp-value"
+                class="card-value"
+            >
+                --
+            </div>
+
+            <div
+                id="bgp-detail"
+                class="card-detail"
+            >
+                Loading...
+            </div>
+        </div>
+
+
+        <div class="card">
+            <div class="card-title">
+                Critical Routes
+            </div>
+
+            <div
+                id="routes-value"
+                class="card-value"
+            >
+                --
+            </div>
+
+            <div
+                id="routes-detail"
+                class="card-detail"
+            >
+                Loading...
+            </div>
+        </div>
+
+
+        <div class="card">
+            <div class="card-title">
+                Open Incidents
+            </div>
+
+            <div
+                id="incidents-value"
+                class="card-value"
+            >
+                --
+            </div>
+
+            <div
+                id="incidents-detail"
+                class="card-detail"
+            >
+                Loading...
+            </div>
+        </div>
+
+    </div>
+    <section>
+        <div class="section-header">
+            <h2>Live Network Topology</h2>
+
+            <div class="section-description">
+                BGP path selection and failover state
+            </div>
+        </div>
+
+        <div class="topology-container">
+
+        <div
+            id="topology-state"
+            class="topology-state"
+        >
+            Waiting for topology data...
+        </div>
+
+        <svg
+            id="topology-svg"
+            viewBox="0 0 1100 450"
+            role="img"
+            aria-label="Redundant BGP network topology"
+        >
+
+            <!-- ================================= -->
+            <!-- LINKS                             -->
+            <!-- ================================= -->
+
+            <!-- host1 -> r1 -->
+            <line
+                id="link-host1-r1"
+                class="topology-link link-edge"
+                x1="130"
+                y1="285"
+                x2="315"
+                y2="285"
+            />
+
+            <!-- Primary R1 -> R2 -->
+            <line
+                id="link-r1-r2"
+                class="topology-link link-primary"
+                x1="385"
+                y1="285"
+                x2="715"
+                y2="285"
+            />
+
+            <!-- Backup R1 -> R3 -->
+            <line
+                id="link-r1-r3"
+                class="topology-link link-standby"
+                x1="365"
+                y1="250"
+                x2="515"
+                y2="115"
+            />
+
+            <!-- Backup R3 -> R2 -->
+            <line
+                id="link-r3-r2"
+                class="topology-link link-standby"
+                x1="585"
+                y1="115"
+                x2="735"
+                y2="250"
+            />
+
+            <!-- r2 -> host2 -->
+            <line
+                id="link-r2-host2"
+                class="topology-link link-edge"
+                x1="785"
+                y1="285"
+                x2="970"
+                y2="285"
+            />
+
+
+            <!-- ================================= -->
+            <!-- LINK LABELS                       -->
+            <!-- ================================= -->
+
+            <text
+                x="550"
+                y="315"
+                class="link-label"
+            >
+                Primary BGP
+            </text>
+
+            <text
+                x="430"
+                y="165"
+                class="link-label"
+            >
+                Backup
+            </text>
+
+            <text
+                x="670"
+                y="165"
+                class="link-label"
+            >
+                Backup
+            </text>
+
+
+            <!-- ================================= -->
+            <!-- HOST 1                            -->
+            <!-- ================================= -->
+
+            <g>
+                <rect
+                    x="45"
+                    y="245"
+                    width="90"
+                    height="80"
+                    rx="12"
+                    class="topology-host"
+                />
+
+                <text
+                    x="90"
+                    y="278"
+                    text-anchor="middle"
+                    class="node-title"
+                >
+                    host1
+                </text>
+
+                <text
+                    x="90"
+                    y="303"
+                    text-anchor="middle"
+                    class="node-subtitle"
+                >
+                    10.10.1.10
+                </text>
+            </g>
+
+
+            <!-- ================================= -->
+            <!-- R1                                -->
+            <!-- ================================= -->
+
+            <g>
+                <rect
+                    id="node-r1"
+                    x="315"
+                    y="245"
+                    width="90"
+                    height="80"
+                    rx="12"
+                    class="topology-router node-up"
+                />
+
+                <text
+                    x="360"
+                    y="275"
+                    text-anchor="middle"
+                    class="node-title"
+                >
+                    R1
+                </text>
+
+                <text
+                    x="360"
+                    y="299"
+                    text-anchor="middle"
+                    class="node-subtitle"
+                >
+                    AS65001
+                </text>
+            </g>
+
+
+            <!-- ================================= -->
+            <!-- R3                                -->
+            <!-- ================================= -->
+
+            <g>
+                <rect
+                    id="node-r3"
+                    x="505"
+                    y="75"
+                    width="90"
+                    height="80"
+                    rx="12"
+                    class="topology-router node-up"
+                />
+
+                <text
+                    x="550"
+                    y="105"
+                    text-anchor="middle"
+                    class="node-title"
+                >
+                    R3
+                </text>
+
+                <text
+                    x="550"
+                    y="129"
+                    text-anchor="middle"
+                    class="node-subtitle"
+                >
+                    AS65003
+                </text>
+            </g>
+
+
+            <!-- ================================= -->
+            <!-- R2                                -->
+            <!-- ================================= -->
+
+            <g>
+                <rect
+                    id="node-r2"
+                    x="695"
+                    y="245"
+                    width="90"
+                    height="80"
+                    rx="12"
+                    class="topology-router node-up"
+                />
+
+                <text
+                    x="740"
+                    y="275"
+                    text-anchor="middle"
+                    class="node-title"
+                >
+                    R2
+                </text>
+
+                <text
+                    x="740"
+                    y="299"
+                    text-anchor="middle"
+                    class="node-subtitle"
+                >
+                    AS65002
+                </text>
+            </g>
+
+
+            <!-- ================================= -->
+            <!-- HOST 2                            -->
+            <!-- ================================= -->
+
+            <g>
+                <rect
+                    x="965"
+                    y="245"
+                    width="90"
+                    height="80"
+                    rx="12"
+                    class="topology-host"
+                />
+
+                <text
+                    x="1010"
+                    y="278"
+                    text-anchor="middle"
+                    class="node-title"
+                >
+                    host2
+                </text>
+
+                <text
+                    x="1010"
+                    y="303"
+                    text-anchor="middle"
+                    class="node-subtitle"
+                >
+                    10.20.1.10
+                </text>
+            </g>
+
+        </svg>
+
+
+        <div class="topology-legend">
+
+            <div>
+                <span class="legend-line legend-primary"></span>
+                Active primary path
+            </div>
+
+            <div>
+                <span class="legend-line legend-backup"></span>
+                Active failover path
+            </div>
+
+            <div>
+                <span class="legend-line legend-failed"></span>
+                Failed path
+            </div>
+
+        </div>
+
+        </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- INTERFACES                                 -->
+    <!-- ========================================== -->
+
+    <section>
+        <div class="section-header">
+            <h2>Interface Status</h2>
+
+            <div class="section-description">
+                Link state and interface counters
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Router</th>
+                        <th>Interface</th>
+                        <th>Status</th>
+                        <th>Oper State</th>
+                        <th>Admin</th>
+                        <th>Carrier</th>
+                        <th>RX Packets</th>
+                        <th>TX Packets</th>
+                        <th>RX Drops</th>
+                        <th>TX Drops</th>
+                    </tr>
+                </thead>
+
+                <tbody id="interfaces-table"></tbody>
+            </table>
+        </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- BGP                                        -->
+    <!-- ========================================== -->
+
+    <section>
+        <div class="section-header">
+            <h2>BGP Neighbors</h2>
+
+            <div class="section-description">
+                Control-plane adjacency state
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Router</th>
+                        <th>Neighbor</th>
+                        <th>State</th>
+                        <th>Local AS</th>
+                        <th>Remote AS</th>
+                        <th>Prefixes</th>
+                    </tr>
+                </thead>
+
+                <tbody id="bgp-table"></tbody>
+            </table>
+        </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- ROUTES                                     -->
+    <!-- ========================================== -->
+
+    <section>
+        <div class="section-header">
+            <h2>Critical Routes</h2>
+
+            <div class="section-description">
+                Primary and failover forwarding paths
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Router</th>
+                        <th>Prefix</th>
+                        <th>Status</th>
+                        <th>Protocol</th>
+                        <th>Expected Next Hop</th>
+                        <th>Actual Next Hop</th>
+                        <th>Interface</th>
+                    </tr>
+                </thead>
+
+                <tbody id="routes-table"></tbody>
+            </table>
+        </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- CONVERGENCE                                -->
+    <!-- ========================================== -->
+
+    <section>
+        <div class="section-header">
+            <h2>Latest Convergence Test</h2>
+
+            <div class="section-description">
+                Redundancy and failover performance
+            </div>
+        </div>
+
+        <div
+            id="convergence-metrics"
+            class="metric-grid"
+        ></div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- INCIDENTS                                  -->
+    <!-- ========================================== -->
+
+    <section>
+        <div class="section-header">
+            <h2>Recent Incidents</h2>
+
+            <div class="section-description">
+                Root-cause incident lifecycle
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Dependency</th>
+                        <th>Root Cause</th>
+                        <th>Status</th>
+                        <th>Opened</th>
+                        <th>Resolved</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+
+                <tbody id="incidents-table"></tbody>
+            </table>
+        </div>
+    </section>
+
+
+    <footer>
+        NetOps Lab · Python · Linux · Docker · Containerlab ·
+        FRRouting · BGP · SQLite · FastAPI
+    </footer>
+
+</div>
+
+
+<script>
+
+    // =============================================
+    // HELPERS
+    // =============================================
+
+    function escapeHtml(value) {
+        if (
+            value === null ||
+            value === undefined
+        ) {
+            return "---";
+        }
+
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+
+    function statusBadge(status) {
+        const safeStatus =
+            status || "UNKNOWN";
+
+        const cssStatus =
+            safeStatus
+                .toLowerCase()
+                .replaceAll(" ", "-");
+
+        return `
+            <span
+                class="badge status-${cssStatus}"
+            >
+                ${escapeHtml(safeStatus)}
+            </span>
+        `;
+    }
+
+
+    function formatSeconds(value) {
+        if (
+            value === null ||
+            value === undefined
+        ) {
+            return "---";
+        }
+
+        return `${Number(value).toFixed(3)} s`;
+    }
+
+
+    function formatDate(value) {
+        if (!value) {
+            return "---";
+        }
+
+        const date = new Date(value);
+
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
+            return value;
+        }
+
+        return date.toLocaleString();
+    }
+
+
+    async function fetchJson(url) {
+        const response =
+            await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(
+                `${url}: HTTP ${response.status}`
+            );
+        }
+
+        return response.json();
+    }
+
+
+    // =============================================
+    // SUMMARY
+    // =============================================
+
+    function renderSummary(summary) {
+
+        document.getElementById(
+            "interfaces-value"
+        ).textContent =
+            `${summary.interfaces.up}/${summary.interfaces.total}`;
+
+        document.getElementById(
+            "interfaces-detail"
+        ).textContent =
+            `${summary.interfaces.down} down`;
+
+
+        document.getElementById(
+            "bgp-value"
+        ).textContent =
+            `${summary.bgp.up}/${summary.bgp.total}`;
+
+        document.getElementById(
+            "bgp-detail"
+        ).textContent =
+            `${summary.bgp.down} down`;
+
+
+        document.getElementById(
+            "routes-value"
+        ).textContent =
+            `${summary.routes.up}/${summary.routes.total}`;
+
+        document.getElementById(
+            "routes-detail"
+        ).textContent =
+            `${summary.routes.degraded} degraded · ` +
+            `${summary.routes.down} down`;
+
+
+        document.getElementById(
+            "incidents-value"
+        ).textContent =
+            summary.incidents.open;
+
+        const averageRecovery =
+            summary.incidents
+                .average_recovery_seconds;
+
+        document.getElementById(
+            "incidents-detail"
+        ).textContent =
+            averageRecovery === null
+                ? "Average recovery: ---"
+                : `Average recovery: ${
+                    Number(
+                        averageRecovery
+                    ).toFixed(1)
+                } s`;
+    }
+
+
+    // =============================================
+    // INTERFACES
+    // =============================================
+
+    function renderInterfaces(interfaces) {
+
+        const table =
+            document.getElementById(
+                "interfaces-table"
+            );
+
+        if (interfaces.length === 0) {
+            table.innerHTML = `
+                <tr>
+                    <td colspan="10">
+                        No interface data available.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        table.innerHTML =
+            interfaces.map(
+                interfaceData => {
+
+                    const status =
+                        interfaceData.healthy
+                            ? "UP"
+                            : "DOWN";
+
+                    return `
+                        <tr>
+                            <td>
+                                ${escapeHtml(
+                                    interfaceData.hostname
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    interfaceData.interface_name
+                                )}
+                            </td>
+
+                            <td>
+                                ${statusBadge(status)}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    interfaceData.operstate
+                                )}
+                            </td>
+
+                            <td>
+                                ${
+                                    interfaceData.admin_up
+                                        ? "UP"
+                                        : "DOWN"
+                                }
+                            </td>
+
+                            <td>
+                                ${
+                                    interfaceData.lower_up
+                                        ? "UP"
+                                        : "DOWN"
+                                }
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    interfaceData.rx_packets
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    interfaceData.tx_packets
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    interfaceData.rx_dropped
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    interfaceData.tx_dropped
+                                )}
+                            </td>
+                        </tr>
+                    `;
+                }
+            ).join("");
+    }
+
+
+    // =============================================
+    // BGP
+    // =============================================
+
+    function renderBgp(neighbors) {
+
+        const table =
+            document.getElementById(
+                "bgp-table"
+            );
+
+        if (neighbors.length === 0) {
+            table.innerHTML = `
+                <tr>
+                    <td colspan="6">
+                        No BGP data available.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        table.innerHTML =
+            neighbors.map(
+                neighbor => `
+                    <tr>
+                        <td>
+                            ${escapeHtml(
+                                neighbor.hostname
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                neighbor.neighbor_ip
+                            )}
+                        </td>
+
+                        <td>
+                            ${statusBadge(
+                                neighbor.state
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                neighbor.local_as
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                neighbor.remote_as
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                neighbor.prefixes_received
+                            )}
+                        </td>
+                    </tr>
+                `
+            ).join("");
+    }
+
+
+    // =============================================
+    // ROUTES
+    // =============================================
+
+    function renderRoutes(routes) {
+
+        const table =
+            document.getElementById(
+                "routes-table"
+            );
+
+        if (routes.length === 0) {
+            table.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        No route data available.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        table.innerHTML =
+            routes.map(
+                route => `
+                    <tr>
+                        <td>
+                            ${escapeHtml(
+                                route.hostname
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                route.prefix
+                            )}
+                        </td>
+
+                        <td>
+                            ${statusBadge(
+                                route.status
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                route.actual_protocol
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                route.expected_next_hop
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                route.actual_next_hop
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                route.interface_name
+                            )}
+                        </td>
+                    </tr>
+                `
+            ).join("");
+    }
+
+
+    // =============================================
+    // CONVERGENCE
+    // =============================================
+
+    function renderConvergence(summary) {
+
+        const container =
+            document.getElementById(
+                "convergence-metrics"
+            );
+
+        const convergence =
+            summary.latest_convergence;
+
+        if (!convergence) {
+            container.innerHTML = `
+                <div class="empty">
+                    No convergence test data yet.
+                </div>
+            `;
+
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="metric">
+                <div class="metric-name">
+                    Failover
+                </div>
+
+                <div class="metric-value">
+                    ${formatSeconds(
+                        convergence.failover_seconds
+                    )}
+                </div>
+            </div>
+
+
+            <div class="metric">
+                <div class="metric-name">
+                    Failback
+                </div>
+
+                <div class="metric-value">
+                    ${formatSeconds(
+                        convergence.failback_seconds
+                    )}
+                </div>
+            </div>
+
+
+            <div class="metric">
+                <div class="metric-name">
+                    Packet Loss
+                </div>
+
+                <div class="metric-value">
+                    ${
+                        Number(
+                            convergence
+                                .packet_loss_percent
+                        ).toFixed(1)
+                    }%
+                </div>
+            </div>
+
+
+            <div class="metric">
+                <div class="metric-name">
+                    Maximum Reply Gap
+                </div>
+
+                <div class="metric-value">
+                    ${formatSeconds(
+                        convergence
+                            .max_reply_gap_seconds
+                    )}
+                </div>
+            </div>
+        `;
+    }
+
+
+    // =============================================
+    // INCIDENTS
+    // =============================================
+
+    function renderIncidents(incidents) {
+
+        const table =
+            document.getElementById(
+                "incidents-table"
+            );
+
+        if (incidents.length === 0) {
+            table.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        No incidents recorded.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        table.innerHTML =
+            incidents.map(
+                incident => {
+
+                    const rootCause =
+                        `${incident.root_cause_device}:` +
+                        `${incident.root_cause_component}`;
+
+                    const duration =
+                        incident.duration_seconds === null
+                            ? "---"
+                            : `${
+                                Number(
+                                    incident.duration_seconds
+                                ).toFixed(1)
+                            } s`;
+
+                    return `
+                        <tr>
+                            <td>
+                                #${escapeHtml(
+                                    incident.id
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    incident.dependency_name
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(rootCause)}
+                            </td>
+
+                            <td>
+                                ${statusBadge(
+                                    incident.status
+                                )}
+                            </td>
+
+                            <td>
+                                ${formatDate(
+                                    incident.opened_at
+                                )}
+                            </td>
+
+                            <td>
+                                ${formatDate(
+                                    incident.resolved_at
+                                )}
+                            </td>
+
+                            <td>
+                                ${duration}
+                            </td>
+                        </tr>
+                    `;
+                }
+            ).join("");
+    }
+
+function getBgpNeighbor(
+    neighbors,
+    hostname,
+    neighborIp
+) {
+    return neighbors.find(
+        neighbor =>
+            neighbor.hostname === hostname &&
+            neighbor.neighbor_ip === neighborIp
+    );
+}
+
+
+function bgpIsUp(
+    neighbors,
+    hostname,
+    neighborIp
+) {
+    const neighbor = getBgpNeighbor(
+        neighbors,
+        hostname,
+        neighborIp
+    );
+
+    if (!neighbor) {
+        return false;
+    }
+
+    return (
+        neighbor.state === "Established" &&
+        Boolean(neighbor.healthy)
+    );
+}
+
+
+function setLinkClass(
+    elementId,
+    className
+) {
+    const element =
+        document.getElementById(
+            elementId
+        );
+
+    element.setAttribute(
+        "class",
+        `topology-link ${className}`
+    );
+}
+
+
+function setNodeState(
+    nodeId,
+    state
+) {
+    const node =
+        document.getElementById(
+            nodeId
+        );
+
+    node.setAttribute(
+        "class",
+        `topology-router node-${state}`
+    );
+}
+
+
+function renderTopology(
+    interfaces,
+    bgp,
+    routes
+) {
+    const primaryR1Up = bgpIsUp(
+        bgp,
+        "r1",
+        "10.0.12.2"
+    );
+
+    const primaryR2Up = bgpIsUp(
+        bgp,
+        "r2",
+        "10.0.12.1"
+    );
+
+    const r1ToR3Up = bgpIsUp(
+        bgp,
+        "r1",
+        "10.0.13.2"
+    );
+
+    const r3ToR1Up = bgpIsUp(
+        bgp,
+        "r3",
+        "10.0.13.1"
+    );
+
+    const r2ToR3Up = bgpIsUp(
+        bgp,
+        "r2",
+        "10.0.23.2"
+    );
+
+    const r3ToR2Up = bgpIsUp(
+        bgp,
+        "r3",
+        "10.0.23.1"
+    );
+
+
+    const primaryUp =
+        primaryR1Up &&
+        primaryR2Up;
+
+
+    const backupR1R3Up =
+        r1ToR3Up &&
+        r3ToR1Up;
+
+
+    const backupR3R2Up =
+        r2ToR3Up &&
+        r3ToR2Up;
+
+
+    const routeDown = routes.some(
+        route =>
+            route.status === "DOWN"
+    );
+
+
+    const routeDegraded = routes.some(
+        route =>
+            route.status === "DEGRADED"
+    );
+
+
+    const failoverActive = (
+        !primaryUp &&
+        backupR1R3Up &&
+        backupR3R2Up &&
+        routeDegraded &&
+        !routeDown
+    );
+
+
+    const topologyState =
+        document.getElementById(
+            "topology-state"
+        );
+
+
+    // ==========================================
+    // FULLY HEALTHY
+    // ==========================================
+
+    if (
+        primaryUp &&
+        !routeDown &&
+        !routeDegraded
+    ) {
+        setLinkClass(
+            "link-r1-r2",
+            "link-primary"
+        );
+
+        setLinkClass(
+            "link-r1-r3",
+            "link-standby"
+        );
+
+        setLinkClass(
+            "link-r3-r2",
+            "link-standby"
+        );
+
+        setNodeState(
+            "node-r1",
+            "up"
+        );
+
+        setNodeState(
+            "node-r2",
+            "up"
+        );
+
+        setNodeState(
+            "node-r3",
+            "up"
+        );
+
+        topologyState.textContent =
+            "PRIMARY PATH ACTIVE — R1 → R2";
+
+        return;
+    }
+
+
+    // ==========================================
+    // FAILOVER ACTIVE
+    // ==========================================
+
+    if (failoverActive) {
+        setLinkClass(
+            "link-r1-r2",
+            "link-down"
+        );
+
+        setLinkClass(
+            "link-r1-r3",
+            "link-failover"
+        );
+
+        setLinkClass(
+            "link-r3-r2",
+            "link-failover"
+        );
+
+        setNodeState(
+            "node-r1",
+            "degraded"
+        );
+
+        setNodeState(
+            "node-r2",
+            "degraded"
+        );
+
+        setNodeState(
+            "node-r3",
+            "up"
+        );
+
+        topologyState.textContent =
+            "FAILOVER ACTIVE — R1 → R3 → R2";
+
+        return;
+    }
+
+
+    // ==========================================
+    // ROUTING OUTAGE
+    // ==========================================
+
+    if (routeDown) {
+        setLinkClass(
+            "link-r1-r2",
+            primaryUp
+                ? "link-primary"
+                : "link-down"
+        );
+
+        setLinkClass(
+            "link-r1-r3",
+            backupR1R3Up
+                ? "link-standby"
+                : "link-down"
+        );
+
+        setLinkClass(
+            "link-r3-r2",
+            backupR3R2Up
+                ? "link-standby"
+                : "link-down"
+        );
+
+        setNodeState(
+            "node-r1",
+            "down"
+        );
+
+        setNodeState(
+            "node-r2",
+            "down"
+        );
+
+        setNodeState(
+            "node-r3",
+            "degraded"
+        );
+
+        topologyState.textContent =
+            "ROUTING OUTAGE — protected route unavailable";
+
+        return;
+    }
+
+
+    // ==========================================
+    // TRANSITION / UNKNOWN
+    // ==========================================
+
+    setLinkClass(
+        "link-r1-r2",
+        primaryUp
+            ? "link-primary"
+            : "link-down"
+    );
+
+    setLinkClass(
+        "link-r1-r3",
+        backupR1R3Up
+            ? "link-standby"
+            : "link-down"
+    );
+
+    setLinkClass(
+        "link-r3-r2",
+        backupR3R2Up
+            ? "link-standby"
+            : "link-down"
+    );
+
+    topologyState.textContent =
+        "NETWORK CONVERGENCE / TRANSITION";
+}
+
+    // =============================================
+    // MAIN REFRESH
+    // =============================================
+
+    async function refreshDashboard() {
+
+        const errorBox =
+            document.getElementById(
+                "error-box"
+            );
+
+        try {
+
+            const [
+                summary,
+                interfaces,
+                bgp,
+                routes,
+                incidents
+            ] = await Promise.all([
+                fetchJson("/api/summary"),
+                fetchJson("/api/interfaces"),
+                fetchJson("/api/bgp"),
+                fetchJson("/api/routes"),
+                fetchJson(
+                    "/api/incidents?limit=10"
+                )
+            ]);
+
+            renderSummary(
+                summary
+            );
+
+            renderInterfaces(
+                interfaces
+            );
+
+            renderBgp(
+                bgp
+            );
+
+            renderRoutes(
+                routes
+            );
+
+renderTopology(
+    interfaces,
+    bgp,
+    routes
+);
+
+            renderConvergence(
+                summary
+            );
+
+            renderIncidents(
+                incidents
+            );
+
+            document.getElementById(
+                "last-updated"
+            ).textContent =
+                `Updated ${
+                    new Date()
+                        .toLocaleTimeString()
+                }`;
+
+            errorBox.style.display =
+                "none";
+
+        } catch (error) {
+
+            errorBox.textContent =
+                `Dashboard refresh failed: ${
+                    error.message
+                }`;
+
+            errorBox.style.display =
+                "block";
+
+            console.error(
+                error
+            );
+        }
+    }
+
+
+    refreshDashboard();
+
+    setInterval(
+        refreshDashboard,
+        5000
+    );
+
+</script>
+
+</body>
+</html>

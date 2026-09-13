@@ -1,0 +1,98 @@
+monitor_namespace: redundant-bgp-lab
+
+devices: []
+
+interfaces:
+  - hostname: r1
+    container: clab-redundant-bgp-lab-r1
+    interface: eth2
+
+  - hostname: r1
+    container: clab-redundant-bgp-lab-r1
+    interface: eth3
+
+  - hostname: r2
+    container: clab-redundant-bgp-lab-r2
+    interface: eth1
+
+  - hostname: r2
+    container: clab-redundant-bgp-lab-r2
+    interface: eth3
+
+  - hostname: r3
+    container: clab-redundant-bgp-lab-r3
+    interface: eth1
+
+  - hostname: r3
+    container: clab-redundant-bgp-lab-r3
+    interface: eth2
+
+
+bgp_routers:
+  - hostname: r1
+    container: clab-redundant-bgp-lab-r1
+    neighbors:
+      - neighbor_ip: 10.0.12.2
+        expected_remote_as: 65002
+
+      - neighbor_ip: 10.0.13.2
+        expected_remote_as: 65003
+
+  - hostname: r2
+    container: clab-redundant-bgp-lab-r2
+    neighbors:
+      - neighbor_ip: 10.0.12.1
+        expected_remote_as: 65001
+
+      - neighbor_ip: 10.0.23.2
+        expected_remote_as: 65003
+
+  - hostname: r3
+    container: clab-redundant-bgp-lab-r3
+    neighbors:
+      - neighbor_ip: 10.0.13.1
+        expected_remote_as: 65001
+
+      - neighbor_ip: 10.0.23.1
+        expected_remote_as: 65002
+
+
+critical_routes:
+  - hostname: r1
+    container: clab-redundant-bgp-lab-r1
+    prefix: 10.20.1.0/24
+    expected_protocol: bgp
+    primary_next_hop: 10.0.12.2
+    backup_next_hops:
+      - 10.0.13.2
+
+  - hostname: r2
+    container: clab-redundant-bgp-lab-r2
+    prefix: 10.10.1.0/24
+    expected_protocol: bgp
+    primary_next_hop: 10.0.12.1
+    backup_next_hops:
+      - 10.0.23.2
+
+
+dependencies:
+  - name: r1-r2-primary-path
+
+    root_cause:
+      type: interface
+      hostname: r1
+      interface: eth2
+
+    affected_bgp:
+      - hostname: r1
+        neighbor_ip: 10.0.12.2
+
+      - hostname: r2
+        neighbor_ip: 10.0.12.1
+
+    affected_routes:
+      - hostname: r1
+        prefix: 10.20.1.0/24
+
+      - hostname: r2
+        prefix: 10.10.1.0/24

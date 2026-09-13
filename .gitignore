@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+.venv-wsl/
+.venv-1/
+
+# SQLite runtime data
+network.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Logs
+logs/
+*.log
+
+# Editor / OS files
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Test tooling
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Containerlab generated runtime files
+clab-*/
+**/clab-*/
